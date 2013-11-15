@@ -67,14 +67,12 @@ int mpsse_read(void *buf, int len) {
 		ret = ftdev.ftio->read(buf, len);
 		if (ret < 0) {
 			/* check if device is plugged out */
-			if (errno == ENODEV)
+			if (errno == ENODEV) {
 				fprintf(stderr, "device unpluged out\n");
-			else
-				fprintf(stderr, "read date error\n");
+			}
+			perror("mpsse_read");
 			exit(errno);
 		}
-//		return ret;
-//		printf("read:%d\n", ret);
 		len -= ret;
 	}
 	return rlen;

@@ -18,7 +18,8 @@ OBJ=\
 	main.o \
 	buffer.o \
 	mpsse.o \
-	ftdi_io_libftdi.o 
+	ftdi_io_libftdi.o \
+	ltc1407a.o 
     
 
 $(BINARY): $(OBJ)
