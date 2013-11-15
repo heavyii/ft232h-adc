@@ -144,8 +144,8 @@ static int ftdi_mpsse(void) {
 	ret |= ftdi_set_error_char(ftdi, 0, 0);
 
 	//sets the read and write timeouts in milliseconds
-	ftdi->usb_read_timeout = 5000;
-	ftdi->usb_write_timeout = 5000;
+	ftdi->usb_read_timeout = 1;
+	ftdi->usb_write_timeout = 1;
 
 	//set the latency time
 	ret |= ftdi_set_latency_timer(ftdi, 1);

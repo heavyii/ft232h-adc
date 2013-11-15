@@ -43,23 +43,25 @@ struct usb_info ftdev = {
 /**
  * write, if error, exit
  */
-void mpsse_write(void *buf, int len) {
+void mpsse_write(const void *buf, int len) {
 	int ret;
 	ret = ftdev.ftio->write(buf, len);
 	if (ret != len) {
 		/* check if device is plugged out */
-		if (errno == ENODEV)
+		if (errno == ENODEV) {
 			fprintf(stderr, "device unpluged out\n");
-		else
-			fprintf(stderr, "write date error\n");
-		exit(errno);
+			exit(errno);
+		} else
+			perror("mpsse_write");
+
 	}
 }
 
 /**
  * read len bytes data to buf, if error, exit
  */
-void mpsse_read(void *buf, int len) {
+int mpsse_read(void *buf, int len) {
+	int rlen = len;
 	while (len > 0) {
 		int ret;
 		ret = ftdev.ftio->read(buf, len);
@@ -71,8 +73,11 @@ void mpsse_read(void *buf, int len) {
 				fprintf(stderr, "read date error\n");
 			exit(errno);
 		}
+//		return ret;
+//		printf("read:%d\n", ret);
 		len -= ret;
 	}
+	return rlen;
 }
 
 static void mpsse_config(void) {

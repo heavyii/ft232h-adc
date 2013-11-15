@@ -5,8 +5,8 @@ INSTALL = /usr/bin/install
 PREFIX ?= /usr/local
 
 INCLUDES = -I. 
-CFLAGS = -O0 -Wall -Wno-char-subscripts -g
-LDFLAGS = -lftdi -lm
+CFLAGS = -O2 -Wall -Wno-char-subscripts -g
+LDFLAGS = -lftdi -lm -lpthread
 
 BINARY = usb-spi
 
