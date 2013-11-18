@@ -6,7 +6,7 @@ PREFIX ?= /usr/local
 
 INCLUDES = -I. 
 CFLAGS = -O2 -Wall -Wno-char-subscripts -g
-LDFLAGS = -lftdi -lm -lpthread
+LDFLAGS = -lftdi -lm
 
 BINARY = usb-spi
 
