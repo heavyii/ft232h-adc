@@ -16,7 +16,7 @@
 
 static struct ftdi_context *ftdi = NULL;
 
-static int ftdi_write(void *buf, int len) {
+static int ftdi_write(const void *buf, int len) {
 	return ftdi_write_data(ftdi, (unsigned char *)buf, len);
 }
 

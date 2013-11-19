@@ -10,7 +10,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include "buffer.h"
 #include "mpsse.h"
 #include "ftdi_io.h"
 #include "debug.h"

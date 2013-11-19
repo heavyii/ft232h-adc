@@ -14,7 +14,7 @@ typedef void (*ftdi_io_close_t)(void);
 typedef int (*ftdi_io_serial_mode_t)(int baudrate);
 typedef int (*ftdi_io_mpsse_mode_t)(void);
 typedef int (*ftdi_io_read_t)(void *buf, int len);
-typedef int (*ftdi_io_write_t)(void *buf, int len);
+typedef int (*ftdi_io_write_t)(const void *buf, int len);
 typedef int (*ftdi_io_flush_t)(void);
 typedef int (*ftdi_io_setbaudrate_t)(int baudrate);
 typedef int (*ftdi_io_set_dtr_t)(int state);

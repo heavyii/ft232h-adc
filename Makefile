@@ -8,7 +8,7 @@ INCLUDES = -I.
 CFLAGS = -O2 -Wall -Wno-char-subscripts -g
 LDFLAGS = -lftdi -lm
 
-BINARY = usb-spi
+BINARY = ft232h-adc
 
 all: $(BINARY)
 
@@ -16,19 +16,19 @@ all: $(BINARY)
 
 OBJ=\
 	main.o \
-	buffer.o \
 	mpsse.o \
 	ftdi_io_libftdi.o \
 	ltc1407a.o 
     
 
-$(BINARY): $(OBJ)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LDFLAGS)
+$(BINARY): $(OBJ)  
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LDFLAGS)
 
 .c.o:
-	$(CC) $(CFLAGS) -o $@ -c $*.c
+	@$(CC) $(CFLAGS) -o $@ -c $*.c
 
 
 clean:
-	@rm -f $(OBJ)
+	@rm -f *.o
 	@rm -f $(BINARY)
+	@rm -rf test-data

@@ -25,8 +25,8 @@ int main(int argc, char **argv) {
 	if (argc > 3)
 		times = atoi(argv[3]);
 
-	if (1){
-		fprintf(stderr, "usage:\n"
+	if (argc == 2 && strstr(argv[1], "-h") != NULL){
+		fprintf(stdout, "usage:\n"
 				"%s <usb serial> <i-l-h-con> <read times>\n"
 				"\texample: %s SNP00074 0 10\n"
 				"\texample: %s SNP00074 1 10\n\n", argv[0],argv[0],argv[0]);
