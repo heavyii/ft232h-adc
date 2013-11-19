@@ -17,9 +17,15 @@
 
 #define ADCMASK 0x3fff
 
+#if 0
+/* led off */
 static const uint8_t ILH_CON_LOW[] =  { 0x82, 0x18, 0xff };
 static const uint8_t ILH_CON_HIGH[] = { 0x82, 0x38, 0xff };
-
+#else
+/* led on */
+static const uint8_t ILH_CON_LOW[] =  { 0x82, 0x00, 0xff };
+static const uint8_t ILH_CON_HIGH[] = { 0x82, 0x20, 0xff };
+#endif
 /*
  * MPSSE: f=30MHz T=33ns
  *
