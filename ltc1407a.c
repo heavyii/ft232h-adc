@@ -26,6 +26,8 @@ static const uint8_t ILH_CON_HIGH[] = { 0x82, 0x38, 0xff };
 static const uint8_t ILH_CON_LOW[] =  { 0x82, 0x00, 0xff };
 static const uint8_t ILH_CON_HIGH[] = { 0x82, 0x20, 0xff };
 #endif
+
+#if 1
 /*
  * MPSSE: f=30MHz T=33ns
  *
@@ -44,8 +46,24 @@ static const uint8_t ADC_SAMPLE[] = {
 	0x80, 0x01, 0xfB,
 
 	/* read 4 bytes */
-	0x20, 0x03, 0x00};
+	0x20, 0x03, 0x00,
 
+	/* sample time */
+	0x12, 0x00, 0x00
+	};
+#else
+static const uint8_t ADC_SAMPLE[] = {
+	/* S0: SCK=0 CS=1 */
+	0x80, 0x08, 0xfB,
+
+	/* S1: SCK=1 CS=0 */
+	0x80, 0x01, 0xfB,
+
+	/* read 4 bytes, out on -ve edge, in on +ve edge */
+	0x31, 0x03, 0x00, 0x12, 0x34, 0x0A, 0xBC,
+	/* sample time */
+	0x12, 0x00, 0x00};
+#endif
 struct adc_samples_raw {
 	uint16_t cur;
 	uint16_t vol;
@@ -75,8 +93,8 @@ void dumphex(const char *msg, const void *buf, int len) {
 }
 
 static inline double adc_conv(x) {
-	/* result = 3*x/2^14 */
-	return (3.3 * ((x) & ADCMASK) / ADCMASK);
+	/* result = 2.5*x/2^14 */
+	return (2.5 * ((x) & ADCMASK) / ADCMASK);
 }
 
 void adc_set_con(int value) {
@@ -135,13 +153,15 @@ void adc_read(struct adc_samples_result rst[ADC_NUMBERS]) {
 	rsense = global_adc.ilh_con == 0 ? 100.0 : 0.1;
 	for (i = 0; i < ADC_NUMBERS; i++) {
 		float cur;
+		float vol;
 		/* ADC raw data is big-endian */
 		global_adc.raw[i].cur = ntohs(global_adc.raw[i].cur) & ADCMASK;
 		global_adc.raw[i].vol = ntohs(global_adc.raw[i].vol) & ADCMASK;
 
 		cur = adc_conv(global_adc.raw[i].cur);
+		vol = adc_conv(global_adc.raw[i].vol);
 		rst[i].cur = cur / 90.91 + cur / 10 / rsense;
-		rst[i].vol = adc_conv(global_adc.raw[i].vol);
+		rst[i].vol = vol * 4;
 	}
 
 #if 1
