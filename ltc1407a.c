@@ -26,8 +26,6 @@ static const uint8_t ILH_CON_HIGH[] = { 0x82, 0x38, 0xff };
 static const uint8_t ILH_CON_LOW[] =  { 0x82, 0x00, 0xff };
 static const uint8_t ILH_CON_HIGH[] = { 0x82, 0x20, 0xff };
 #endif
-
-#if 1
 /*
  * MPSSE: f=30MHz T=33ns
  *
@@ -39,6 +37,8 @@ static const uint8_t ILH_CON_HIGH[] = { 0x82, 0x20, 0xff };
  * 32bits   0x20, 0x03, 0x00
  */
 static const uint8_t ADC_SAMPLE[] = {
+	/* clk */
+	/* 0x8e, 0x03, */
 	/* S0: SCK=0 CS=1 */
 	0x80, 0x08, 0xfB,
 
@@ -46,27 +46,16 @@ static const uint8_t ADC_SAMPLE[] = {
 	0x80, 0x01, 0xfB,
 
 	/* read 4 bytes */
-	0x20, 0x03, 0x00,
+	0x20, 0x03, 0x00};
 
-	/* sample time */
-	0x12, 0x00, 0x00
-	};
-#else
-static const uint8_t ADC_SAMPLE[] = {
-	/* S0: SCK=0 CS=1 */
-	0x80, 0x08, 0xfB,
-
-	/* S1: SCK=1 CS=0 */
-	0x80, 0x01, 0xfB,
-
-	/* read 4 bytes, out on -ve edge, in on +ve edge */
-	0x31, 0x03, 0x00, 0x12, 0x34, 0x0A, 0xBC,
-	/* sample time */
-	0x12, 0x00, 0x00};
-#endif
 struct adc_samples_raw {
 	uint16_t cur;
 	uint16_t vol;
+};
+
+struct adc_samples_ave {
+	uint32_t cur;
+	uint32_t vol;
 };
 
 struct adc_info {
@@ -74,6 +63,7 @@ struct adc_info {
 	int ilh_con;
 	uint8_t cmds[ADC_NUMBERS][sizeof(ADC_SAMPLE)];
 	struct adc_samples_raw raw[ADC_NUMBERS]; 	/* raw data */
+	struct adc_samples_ave ave;
 };
 
 struct adc_info global_adc = { 0 };
@@ -93,8 +83,8 @@ void dumphex(const char *msg, const void *buf, int len) {
 }
 
 static inline double adc_conv(x) {
-	/* result = 2.5*x/2^14 */
-	return (2.5 * ((x) & ADCMASK) / ADCMASK);
+	/* result = 3*x/2^14 */
+	return (2.4933 * ((x) & ADCMASK) / ADCMASK);
 }
 
 void adc_set_con(int value) {
@@ -130,10 +120,15 @@ void adc_close(void) {
 static void debug_print_adc(const struct adc_samples_result rst[ADC_NUMBERS]) {
 	int i;
 	char info;
+	float ave_vol;
+	float ave_cur;
 	info = adc_get_con() == 0 ? 'L' : 'H';
+	ave_vol = adc_conv(global_adc.ave.vol);
+	ave_cur = adc_conv(global_adc.ave.cur);
 	for (i = 0; i < ADC_NUMBERS; i++) {
-		printf("%c RAW(%u, %u)\n", info, global_adc.raw[i].cur, global_adc.raw[i].vol);
-		printf("%c RST(%f, %f)\n\n", info, rst[i].cur, rst[i].vol);
+		printf("%c RAW(%u, %0.4f, %u) ", info, global_adc.raw[i].cur, adc_conv(global_adc.raw[i].cur), global_adc.raw[i].vol);
+		printf("RST(%f, %f)", rst[i].cur, rst[i].vol);
+		printf("AVE(%0.4f, %0.4f)\n", ave_cur, ave_vol);
 	}
 }
 
@@ -151,18 +146,23 @@ void adc_read(struct adc_samples_result rst[ADC_NUMBERS]) {
 	 * 当  I-L-H-CON = 1时，Rsense = 0.1;
 	 */
 	rsense = global_adc.ilh_con == 0 ? 100.0 : 0.1;
+	global_adc.ave.cur = 0;
+	global_adc.ave.vol = 0;
 	for (i = 0; i < ADC_NUMBERS; i++) {
 		float cur;
-		float vol;
 		/* ADC raw data is big-endian */
 		global_adc.raw[i].cur = ntohs(global_adc.raw[i].cur) & ADCMASK;
 		global_adc.raw[i].vol = ntohs(global_adc.raw[i].vol) & ADCMASK;
 
+		global_adc.ave.cur += global_adc.raw[i].cur;
+		global_adc.ave.vol += global_adc.raw[i].vol;
+
 		cur = adc_conv(global_adc.raw[i].cur);
-		vol = adc_conv(global_adc.raw[i].vol);
 		rst[i].cur = cur / 90.91 + cur / 10 / rsense;
-		rst[i].vol = vol * 4;
+		rst[i].vol = adc_conv(global_adc.raw[i].vol);
 	}
+	global_adc.ave.cur /= ADC_NUMBERS;
+	global_adc.ave.vol /= ADC_NUMBERS;
 
 #if 1
 	debug_print_adc(rst);

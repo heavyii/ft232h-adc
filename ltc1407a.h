@@ -5,7 +5,7 @@
 #ifndef LTC1407A_H_
 #define LTC1407A_H_
 
-#define ADC_NUMBERS  50
+#define ADC_NUMBERS  80
 
 struct adc_samples_result {
 	float cur;
