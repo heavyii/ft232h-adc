@@ -46,7 +46,10 @@ static const uint8_t ADC_SAMPLE[] = {
 	0x80, 0x01, 0xfB,
 
 	/* read 4 bytes */
-	0x20, 0x03, 0x00};
+	0x20, 0x03, 0x00,
+
+	/* delay, Clock For n x 8 bits
+	0x8f, 0x00, 0x10 */};
 
 struct adc_samples_raw {
 	uint16_t cur;
@@ -125,7 +128,7 @@ static void debug_print_adc(const struct adc_samples_result rst[ADC_NUMBERS]) {
 	info = adc_get_con() == 0 ? 'L' : 'H';
 	ave_vol = adc_conv(global_adc.ave.vol);
 	ave_cur = adc_conv(global_adc.ave.cur);
-	for (i = 0; i < ADC_NUMBERS; i++) {
+	for (i = 0; i < 1; i++) {
 		printf("%c RAW(%u, %0.4f, %u) ", info, global_adc.raw[i].cur, adc_conv(global_adc.raw[i].cur), global_adc.raw[i].vol);
 		printf("RST(%f, %f)", rst[i].cur, rst[i].vol);
 		printf("AVE(%0.4f, %0.4f)\n", ave_cur, ave_vol);
@@ -158,7 +161,8 @@ void adc_read(struct adc_samples_result rst[ADC_NUMBERS]) {
 		global_adc.ave.vol += global_adc.raw[i].vol;
 
 		cur = adc_conv(global_adc.raw[i].cur);
-		rst[i].cur = cur / 90.91 + cur / 10 / rsense;
+		//rst[i].cur = cur / 90.91 + cur / 10 / rsense;
+		rst[i].cur = cur * 0.0624;
 		rst[i].vol = adc_conv(global_adc.raw[i].vol);
 	}
 	global_adc.ave.cur /= ADC_NUMBERS;

@@ -155,7 +155,7 @@ static void mpsse_config(void) {
 	 */
 	// TCK = 60MHz /((1 + [(1 +0xValueH*256) OR 0xValueL])*2)
 	// Value of clock divisor, SCL Frequency = 60/((1+clk_div)*2) (MHz)
-	unsigned short clk_div = 0x0000; //max speed
+	unsigned short clk_div = 0x0005; //max speed
 	buf[pos++] = 0x86; //Command to set clock divisor
 	buf[pos++] = clk_div & 0x00ff; //Set 0xValueL of clock divisor
 	buf[pos++] = (clk_div >> 8) & 0x00ff;
