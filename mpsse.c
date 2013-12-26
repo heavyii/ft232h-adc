@@ -14,7 +14,7 @@
 #include "ftdi_io.h"
 #include "debug.h"
 
-//#define FTIO_LIBFTDI1
+#define FTIO_LIBFTDI1
 #ifdef FTIO_LIBFTDI1
 #include "ftdi_io_ftdi1.h"
 #else

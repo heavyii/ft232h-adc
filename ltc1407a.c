@@ -14,6 +14,7 @@
 #include "math.h"
 #include "ltc1407a.h"
 
+//#define DEBUG_RAW
 
 #define ADCMASK 0x3fff
 
@@ -24,8 +25,9 @@ static const uint8_t ILH_CON_HIGH[] = { 0x82, 0x38, 0xff };
 #else
 /* led on */
 static const uint8_t ILH_CON_LOW[] =  { 0x82, 0x00, 0xff };
-static const uint8_t ILH_CON_HIGH[] = { 0x82, 0x20, 0xff };
+static const uint8_t ILH_CON_HIGH[] = { 0x82, 0x10, 0xff };
 #endif
+
 /*
  * MPSSE: f=30MHz T=33ns
  *
@@ -36,7 +38,12 @@ static const uint8_t ILH_CON_HIGH[] = { 0x82, 0x20, 0xff };
  * |   |
  * 32bits   0x20, 0x03, 0x00
  */
-static const uint8_t ADC_SAMPLE[] = {
+static uint8_t ADC_SAMPLE[] = {
+	/* f=5MHz, T=200ns
+	 * CLK_sample = 34, T_sample = 34*200 ns = 6800ns = 6.8us, f_sample = 147KHz
+	 *
+	 * clk = 5000 / f - 34; //f is sample rate (KHz)
+	 */
 	/* clk */
 	/* 0x8e, 0x03, */
 	/* S0: SCK=0 CS=1 */
@@ -49,16 +56,13 @@ static const uint8_t ADC_SAMPLE[] = {
 	0x20, 0x03, 0x00,
 
 	/* delay, Clock For n x 8 bits
-	0x8f, 0x00, 0x10 */};
+	 * x8F, LengthL, LengthH,
+	 */
+	0x8f, 0x00, 0x00};
 
 struct adc_samples_raw {
 	uint16_t cur;
 	uint16_t vol;
-};
-
-struct adc_samples_ave {
-	uint32_t cur;
-	uint32_t vol;
 };
 
 struct adc_info {
@@ -66,28 +70,13 @@ struct adc_info {
 	int ilh_con;
 	uint8_t cmds[ADC_NUMBERS][sizeof(ADC_SAMPLE)];
 	struct adc_samples_raw raw[ADC_NUMBERS]; 	/* raw data */
-	struct adc_samples_ave ave;
 };
 
 struct adc_info global_adc = { 0 };
 
-/**
- * print hex stream
- */
-void dumphex(const char *msg, const void *buf, int len) {
-	int i = 0;
-	const char *p = (const char *) buf;
-	if (msg)
-		puts(msg);
-	for (i = 0; i < len; i++) {
-		printf(" %02hhx", *p++);
-	}
-	putchar('\n');
-}
-
 static inline double adc_conv(x) {
 	/* result = 3*x/2^14 */
-	return (2.4933 * ((x) & ADCMASK) / ADCMASK);
+	return (2.5 * ((x) & ADCMASK) / ADCMASK);
 }
 
 void adc_set_con(int value) {
@@ -102,17 +91,28 @@ int adc_get_con(void) {
 	return global_adc.ilh_con;
 }
 
-int adc_open(const char *serial) {
+/**
+ * rate: sample rate (khz)
+ */
+int adc_open(const char *serial, int rate) {
 	int i;
+	int clk = 0;
 	if (mpsse_open(serial) != 0) {
 		fprintf(stderr, "failed to open device\n");
 		return -1;
 	}
 
+	clk = (5000/rate - 34)/8;
+	if (clk < 0)
+		clk = 0;
+	ADC_SAMPLE[10] = clk;
+	ADC_SAMPLE[11] = clk >> 8;
+
 	for (i = 0; i < ADC_NUMBERS; i++) {
 		memcpy(global_adc.cmds[i], ADC_SAMPLE, sizeof(ADC_SAMPLE));
 	}
-	adc_set_con(0);
+
+	adc_set_con(1);
 	return 0;
 }
 
@@ -120,28 +120,29 @@ void adc_close(void) {
 	mpsse_close();
 }
 
-static void debug_print_adc(const struct adc_samples_result rst[ADC_NUMBERS]) {
+#ifdef DEBUG_RAW
+static void debug_print_adc(const struct adc_samples_result *rst, int num) {
 	int i;
 	char info;
-	float ave_vol;
-	float ave_cur;
 	info = adc_get_con() == 0 ? 'L' : 'H';
-	ave_vol = adc_conv(global_adc.ave.vol);
-	ave_cur = adc_conv(global_adc.ave.cur);
-	for (i = 0; i < 1; i++) {
+	for (i = 0; i < num; i++) {
 		printf("%c RAW(%u, %0.4f, %u) ", info, global_adc.raw[i].cur, adc_conv(global_adc.raw[i].cur), global_adc.raw[i].vol);
-		printf("RST(%f, %f)", rst[i].cur, rst[i].vol);
-		printf("AVE(%0.4f, %0.4f)\n", ave_cur, ave_vol);
+		printf("RST(%f, %f)\n", rst[i].cur, rst[i].vol);
 	}
 }
+#endif
 
-void adc_read(struct adc_samples_result rst[ADC_NUMBERS]) {
+int adc_read(struct adc_samples_result *rst, int num) {
 	static int i = 0;
 	float rsense;
 
+	if (num > ADC_NUMBERS) {
+		fprintf(stderr, "num too big, limit num <= %d\n", ADC_NUMBERS);
+		return -1;
+	}
 	//dumphex("CMD", global_adc.cmds, sizeof(global_adc.cmds));
-	mpsse_write(global_adc.cmds, sizeof(global_adc.cmds));
-	mpsse_read(global_adc.raw, sizeof(global_adc.raw));
+	mpsse_write(global_adc.cmds, sizeof(global_adc.cmds[0]) * num);
+	mpsse_read(global_adc.raw, sizeof(global_adc.raw[0]) * num);
 
 	/*
 	 * 总的 Iload = Iout + Isense = Vout/90.91 + Vout/10/Rsense = Vout * 1.011
@@ -149,27 +150,19 @@ void adc_read(struct adc_samples_result rst[ADC_NUMBERS]) {
 	 * 当  I-L-H-CON = 1时，Rsense = 0.1;
 	 */
 	rsense = global_adc.ilh_con == 0 ? 100.0 : 0.1;
-	global_adc.ave.cur = 0;
-	global_adc.ave.vol = 0;
-	for (i = 0; i < ADC_NUMBERS; i++) {
-		float cur;
+	for (i = 0; i < num; i++) {
 		/* ADC raw data is big-endian */
-		global_adc.raw[i].cur = ntohs(global_adc.raw[i].cur) & ADCMASK;
-		global_adc.raw[i].vol = ntohs(global_adc.raw[i].vol) & ADCMASK;
+		global_adc.raw[i].cur = ntohs(global_adc.raw[i].cur);
+		global_adc.raw[i].vol = ntohs(global_adc.raw[i].vol);
 
-		global_adc.ave.cur += global_adc.raw[i].cur;
-		global_adc.ave.vol += global_adc.raw[i].vol;
-
-		cur = adc_conv(global_adc.raw[i].cur);
-		//rst[i].cur = cur / 90.91 + cur / 10 / rsense;
-		rst[i].cur = cur * 0.0624;
-		rst[i].vol = adc_conv(global_adc.raw[i].vol);
+		rst[i].cur = adc_conv(global_adc.raw[i].cur); // * 0.0925
+		rst[i].vol = adc_conv(global_adc.raw[i].vol) * 4;
 	}
-	global_adc.ave.cur /= ADC_NUMBERS;
-	global_adc.ave.vol /= ADC_NUMBERS;
+	/* XXX: drop the second sample */
+	if (num >= 3) {
+		rst[1].vol = (rst[0].vol + rst[2].vol) / 2;
+		rst[1].cur = (rst[0].cur + rst[2].cur) / 2;
+	}
 
-#if 1
-	debug_print_adc(rst);
-#endif
+	return num;
 }
-

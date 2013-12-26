@@ -5,8 +5,8 @@ INSTALL = /usr/bin/install
 PREFIX ?= /usr/local
 
 INCLUDES = -I. 
-CFLAGS = -O2 -Wall -Wno-char-subscripts -g
-LDFLAGS = -lftdi -lm
+CFLAGS = -O0 -Wall -Wno-char-subscripts 
+LDFLAGS = -lftdi1 -lpthread -lm
 
 BINARY = ft232h-adc
 
@@ -17,15 +17,15 @@ all: $(BINARY)
 OBJ=\
 	main.o \
 	mpsse.o \
-	ftdi_io_libftdi.o \
+	ftdi_io_ftdi1.o \
 	ltc1407a.o 
     
 
 $(BINARY): $(OBJ)  
-	@$(CC) $(LDFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 .c.o:
-	@$(CC) $(CFLAGS) -o $@ -c $*.c
+	$(CC) $(CFLAGS) -o $@ -c $*.c
 
 
 clean:

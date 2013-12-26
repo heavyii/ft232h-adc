@@ -16,7 +16,7 @@
 #include "debug.h"
 static struct ftdi_context *ftdi = NULL;
 
-static int ftdi1_write(void *buf, int len) {
+static int ftdi1_write(const void *buf, int len) {
 	return ftdi_write_data(ftdi, (unsigned char *)buf, len);
 }
 
@@ -141,8 +141,8 @@ static int ftdi1_mpsse(void) {
 	ret |= ftdi_set_error_char(ftdi, 0, 0);
 
 	//sets the read and write timeouts in milliseconds
-	ftdi->usb_read_timeout = 5000;
-	ftdi->usb_write_timeout = 5000;
+	ftdi->usb_read_timeout = 100;
+	ftdi->usb_write_timeout = 100;
 
 	//set the latency time
 	ret |= ftdi_set_latency_timer(ftdi, 1);

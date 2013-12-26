@@ -5,23 +5,29 @@
 #ifndef LTC1407A_H_
 #define LTC1407A_H_
 
-#define ADC_NUMBERS  80
+#define ADC_NUMBERS  50
 
 struct adc_samples_result {
 	float cur;
 	float vol;
 };
 
+struct adc_dst {
+	uint16_t vol;
+	uint16_t cur;
+};
+
 /**
- * @return: 0 success, -1 error
+ * rate: sample rate (khz)
+ * @return: 0 on success, -1 on error
  */
-int adc_open(const char *serial);
+int adc_open(const char *serial, int rate);
 void adc_close(void);
 
 /**
  * read adc data to rst[ADC_NUMBERS]
  */
-void adc_read(struct adc_samples_result rst[ADC_NUMBERS]);
+int adc_read(struct adc_samples_result *rst, int num);
 
 void adc_set_con(int value);
 int adc_get_con(void);
