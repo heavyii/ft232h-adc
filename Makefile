@@ -6,7 +6,7 @@ PREFIX ?= /usr/local
 
 INCLUDES = -I. 
 CFLAGS = -O0 -Wall -Wno-char-subscripts 
-LDFLAGS = -lftdi1 -lpthread -lm
+LDFLAGS = -lftdi -lpthread -lm
 
 BINARY = ft232h-adc
 
@@ -17,7 +17,7 @@ all: $(BINARY)
 OBJ=\
 	main.o \
 	mpsse.o \
-	ftdi_io_ftdi1.o \
+	ftdi_io_libftdi.o \
 	ltc1407a.o 
     
 

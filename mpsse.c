@@ -14,7 +14,7 @@
 #include "ftdi_io.h"
 #include "debug.h"
 
-#define FTIO_LIBFTDI1
+//#define FTIO_LIBFTDI1
 #ifdef FTIO_LIBFTDI1
 #include "ftdi_io_ftdi1.h"
 #else
@@ -42,7 +42,7 @@ struct usb_info ftdev = {
 /**
  * write, if error, exit
  */
-void mpsse_write(const void *buf, int len) {
+int mpsse_write(const void *buf, int len) {
 	int ret;
 	ret = ftdev.ftio->write(buf, len);
 	if (ret != len) {
@@ -50,10 +50,11 @@ void mpsse_write(const void *buf, int len) {
 		if (errno == ENODEV) {
 			fprintf(stderr, "device unpluged out\n");
 			exit(errno);
-		} else
-			perror("mpsse_write");
-
+		}
+		perror("mpsse_write");
+		return -1;
 	}
+	return len;
 }
 
 /**
@@ -68,9 +69,10 @@ int mpsse_read(void *buf, int len) {
 			/* check if device is plugged out */
 			if (errno == ENODEV) {
 				fprintf(stderr, "device unpluged out\n");
+				exit(errno);
 			}
 			perror("mpsse_read");
-			exit(errno);
+			return -1;
 		}
 		len -= ret;
 	}

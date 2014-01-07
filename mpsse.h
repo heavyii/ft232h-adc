@@ -19,6 +19,6 @@ int mpsse_read(void *buf, int len);
 /**
  * write, if error, exit
  */
-void mpsse_write(const void *buf, int len);
+int mpsse_write(const void *buf, int len);
 
 #endif /* MPSSE_H_ */
